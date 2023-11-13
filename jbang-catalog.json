@@ -1,0 +1,8 @@
+{
+  "catalogs": {},
+  "aliases": {
+    "karate-grpcurl": {
+      "script-ref": "karate-grpcurl-fatjar.jar"
+    }
+  }
+}
