@@ -12,24 +12,27 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 
 public class GrpcurlClient {
 
     private final static String GRPCURL_CMD_PATH = "grpcurl";
     private final static String GPRC_URL_FORMAT = "%s:%d";
-    private final String GPRC_URL;
+    private final String GRPC_URL;
     private final DefaultExecutor exec;
     ByteArrayOutputStream susStream;
     ByteArrayOutputStream errStream;
 
     boolean noTls = false;
+    boolean useProtoSource = false;
+    String protosImportPath = "";
+    String defaultProtoFile = "";
 
     public GrpcurlClient(String host, int port) {
         this(host, port, false);
     }
+
     public GrpcurlClient(String host, int port, boolean noTls) {
-        GPRC_URL = String.format(GPRC_URL_FORMAT, host, port);
+        GRPC_URL = String.format(GPRC_URL_FORMAT, host, port);
 
         susStream = new ByteArrayOutputStream();
         errStream = new ByteArrayOutputStream();
@@ -41,17 +44,44 @@ public class GrpcurlClient {
         this.noTls = noTls;
     }
 
-    private CommandLine GetGrpcurlCmd() {
+    public void SetProtosImportPath(String protosImportPath) {
+        this.useProtoSource = true;
+        this.protosImportPath = protosImportPath;
+    }
+
+    public void SetProto(String protoFile) {
+        this.defaultProtoFile = protoFile;
+    }
+
+    private CommandLine GetGrpcurlCmd(String protoFile) {
         CommandLine cmd = CommandLine.parse(GRPCURL_CMD_PATH);
         if (noTls) {
             cmd.addArgument("-plaintext");
         }
+        if (useProtoSource) {
+            cmd.addArgument("-import-path");
+            cmd.addArgument(protosImportPath);
+
+            if (!protoFile.isBlank()) {
+                cmd.addArgument("-proto");
+                cmd.addArgument(protoFile);
+            } else if (!defaultProtoFile.isBlank()) {
+                cmd.addArgument("-proto");
+                cmd.addArgument(defaultProtoFile);
+            }
+        }
+
         return cmd;
     }
 
     public Collection<String> list() {
-        CommandLine cmd = GetGrpcurlCmd();
-        cmd.addArgument(GPRC_URL);
+        return this.list("");
+    }
+
+    public Collection<String> list(String protoFile) {
+        CommandLine cmd = GetGrpcurlCmd(protoFile);
+
+        cmd.addArgument(GRPC_URL);
         cmd.addArgument("list");
 
         String result = invokeCmd(cmd);
@@ -60,10 +90,15 @@ public class GrpcurlClient {
     }
 
     public Map<String, Object> call(String method, Map<String, Object> payload) {
-        CommandLine cmd = GetGrpcurlCmd();
+        return this.call(method, payload, "");
+    }
+
+    public Map<String, Object> call(String method, Map<String, Object> payload, String protoFile) {
+        CommandLine cmd = GetGrpcurlCmd(protoFile);
         cmd.addArgument("-d");
         cmd.addArgument(new Gson().toJson(payload), false);
-        cmd.addArgument(GPRC_URL);
+        
+        cmd.addArgument(GRPC_URL);
         cmd.addArgument(method);
 
         String result = invokeCmd(cmd);
