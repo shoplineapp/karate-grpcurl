@@ -18,25 +18,20 @@ public class GrpcurlClient {
     private final static String GRPCURL_CMD_PATH = "grpcurl";
     private final static String GPRC_URL_FORMAT = "%s:%d";
     private final String GRPC_URL;
-    private final String PROTOS_IMPORT_PATH;
     private final DefaultExecutor exec;
     ByteArrayOutputStream susStream;
     ByteArrayOutputStream errStream;
 
     boolean noTls = false;
     boolean useProtoSource = false;
+    String protosImportPath = null;
 
     public GrpcurlClient(String host, int port) {
-        this(host, port, false, "");
+        this(host, port, false);
     }
 
     public GrpcurlClient(String host, int port, boolean noTls) {
-        this(host, port, noTls, "");
-    }
-
-    public GrpcurlClient(String host, int port, boolean noTls, String protosPath) {
         GRPC_URL = String.format(GPRC_URL_FORMAT, host, port);
-        PROTOS_IMPORT_PATH = protosPath;
 
         susStream = new ByteArrayOutputStream();
         errStream = new ByteArrayOutputStream();
@@ -46,9 +41,11 @@ public class GrpcurlClient {
         exec.setStreamHandler(streamHandler);
 
         this.noTls = noTls;
-        if (!protosPath.isBlank()) {
-            this.useProtoSource = true;
-        }
+    }
+
+    public void SetProtosImportPath(String protosImportPath) {
+        this.useProtoSource = true;
+        this.protosImportPath = protosImportPath;
     }
 
     private CommandLine GetGrpcurlCmd() {
@@ -58,7 +55,7 @@ public class GrpcurlClient {
         }
         if (useProtoSource) {
             cmd.addArgument("-import-path");
-            cmd.addArgument(PROTOS_IMPORT_PATH);
+            cmd.addArgument(protosImportPath);
         }
         return cmd;
     }
