@@ -24,7 +24,8 @@ public class GrpcurlClient {
 
     boolean noTls = false;
     boolean useProtoSource = false;
-    String protosImportPath = null;
+    String protosImportPath = "";
+    String defaultProtoFile = "";
 
     public GrpcurlClient(String host, int port) {
         this(host, port, false);
@@ -48,7 +49,11 @@ public class GrpcurlClient {
         this.protosImportPath = protosImportPath;
     }
 
-    private CommandLine GetGrpcurlCmd() {
+    public void SetProto(String protoFile) {
+        this.defaultProtoFile = protoFile;
+    }
+
+    private CommandLine GetGrpcurlCmd(String protoFile) {
         CommandLine cmd = CommandLine.parse(GRPCURL_CMD_PATH);
         if (noTls) {
             cmd.addArgument("-plaintext");
@@ -56,7 +61,16 @@ public class GrpcurlClient {
         if (useProtoSource) {
             cmd.addArgument("-import-path");
             cmd.addArgument(protosImportPath);
+
+            if (!protoFile.isBlank()) {
+                cmd.addArgument("-proto");
+                cmd.addArgument(protoFile);
+            } else if (!defaultProtoFile.isBlank()) {
+                cmd.addArgument("-proto");
+                cmd.addArgument(defaultProtoFile);
+            }
         }
+
         return cmd;
     }
 
@@ -65,11 +79,8 @@ public class GrpcurlClient {
     }
 
     public Collection<String> list(String protoFile) {
-        CommandLine cmd = GetGrpcurlCmd();
-        if (!protoFile.isBlank()) {
-            cmd.addArgument("-proto");
-            cmd.addArgument(protoFile);
-        }
+        CommandLine cmd = GetGrpcurlCmd(protoFile);
+
         cmd.addArgument(GRPC_URL);
         cmd.addArgument("list");
 
@@ -83,14 +94,9 @@ public class GrpcurlClient {
     }
 
     public Map<String, Object> call(String method, Map<String, Object> payload, String protoFile) {
-        CommandLine cmd = GetGrpcurlCmd();
+        CommandLine cmd = GetGrpcurlCmd(protoFile);
         cmd.addArgument("-d");
         cmd.addArgument(new Gson().toJson(payload), false);
-
-        if (!protoFile.isBlank()) {
-            cmd.addArgument("-proto");
-            cmd.addArgument(protoFile);
-        }
         
         cmd.addArgument(GRPC_URL);
         cmd.addArgument(method);
