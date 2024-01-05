@@ -1,6 +1,7 @@
 package com.edison42.karate.grpcurl;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 public class GrpcurlClient {
@@ -101,8 +103,14 @@ public class GrpcurlClient {
         cmd.addArgument(GRPC_URL);
         cmd.addArgument(method);
 
-        String result = invokeCmd(cmd);
-        return new Gson().fromJson(result, new TypeToken<Map<String, Object>>(){}.getType());
+        try {
+            String result = invokeCmd(cmd);
+            return new Gson().fromJson(result, new TypeToken<Map<String, Object>>(){}.getType());
+        } catch (GrpcurlException e) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("error", e.getMessage());
+            return result;
+        }
     }
 
     private String invokeCmd(CommandLine cmd) {
